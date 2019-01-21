@@ -17,6 +17,7 @@ public class Main {
         countDownLatch = new CountDownLatch(2);
 
         RandomAccessFile file = new RandomAccessFile("file_to_copy.pdf", "r");
+
         long partByteSize = file.length() / 2;
 
         ExecutorService pool = Executors.newFixedThreadPool(2);
@@ -28,21 +29,9 @@ public class Main {
         pool.submit(firstThread);
         pool.submit(secondThread);
 
-        /* byte[] firstPart = new byte[(int)partByteSize];
-        byte[] secondPart = new byte[(int)partByteSize];
-
-        file.read(firstPart, 0, (int)partByteSize);
-        file.seek(partByteSize - 1);
-        file.read(secondPart, 0, (int)partByteSize);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        outputStream.write(firstPart);
-        outputStream.write(secondPart);*/
-        //проблема в том что должны отработать FirstThread, SecondThread, потом главный, а происходит наоборот.
-
         countDownLatch.await();
 
-        System.out.println("Вернули управление главному потоку");
+        System.out.println("Return flow control to the main thread");
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         outputStream.write(((FirstThread) firstThread).getPart());
@@ -50,10 +39,13 @@ public class Main {
 
         FileOutputStream fileOutput = new FileOutputStream("result_file.pdf");
         fileOutput.write(outputStream.toByteArray());
-    }
 
-    public static CountDownLatch getCountDownLatch() {
-        return countDownLatch;
+        file.close();
+        fileOutput.close();
+
+        // if you want to wait a little Thread.sleep(2000);
+
+        System.exit(0);
     }
 
     public static void setCountDownLatch() {
