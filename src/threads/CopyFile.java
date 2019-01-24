@@ -6,7 +6,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.CountDownLatch;
+
+/**
+ * In this class file copies into the other directory
+ */
 
 public class CopyFile implements Runnable {
 
@@ -39,6 +42,7 @@ public class CopyFile implements Runnable {
                 i += temp.length;
                 System.out.println("Copied " + i + "/" + tempFileToCopy.length() + " bytes of " + fileToCopy.getName());
             }
+            Main.latch.countDown();
         } catch (IOException e) {
             System.out.println("Input/output exception!");
         }
