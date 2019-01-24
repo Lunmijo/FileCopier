@@ -1,87 +1,60 @@
 package filecopier;
 
-import threads.FirstThread;
-import threads.SecondThread;
+import threads.CopyFile;
 
-import java.io.*;
+import java.io.File;
+import java.util.LinkedList;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/*
++ на вход получить исходный и результирующий каталог
++ сделать File[] listFiles()
++ удалить оттуда папки и пересохранить это всё в линкедЛист
+
+работа с  потоками:
+создавать потоки пока их число не будет =5 или не закончатся файлы.
+Копировать файлы, выводя на экран "Копируется файл N/n"
+Если число потоков =5 ждать пока освободятся.
+ */
+
 public class Main {
 
-     private static volatile CountDownLatch countDownLatch;
-     private static FirstThread firstThread;
-     private static SecondThread secondThread;
-
-    public synchronized static void main(String[] args) throws IOException {
-
-        countDownLatch = new CountDownLatch(2);
-
+    public synchronized static void main(String[] args) {
+        System.out.println("Enter absolute path to folder to copy: ");
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter file name with extension");
-        String fileName = scanner.nextLine();
+        String copyFrom = scanner.nextLine();
 
-         RandomAccessFile file = null;
-        long sizeOfFileParts = 0;
-        long fileSize = 0;
+        System.out.println("Enter absolute path to result folder: ");
+        String copyTo = scanner.nextLine();
 
-        try {
-            file = new RandomAccessFile(fileName, "r");
-            fileSize = file.getChannel().size();
-            sizeOfFileParts = file.getChannel().size() / 2;
-        } catch (FileNotFoundException e) {
-            System.out.println("File not found!");
-            System.exit(-1);
-        } catch (IOException e) {
-            System.out.println("An error has been occured. Cannot work with file.");
-            System.exit(-1);
-        }
+        File copyFromFolder = new File(copyFrom);
 
-            ExecutorService pool = Executors.newFixedThreadPool(2);
+        if (copyFromFolder.exists() && copyFromFolder.isDirectory()) {
 
-            firstThread = new FirstThread(file, (int) sizeOfFileParts);
-            secondThread = new SecondThread(file, (int) fileSize);
-
-            pool.execute(firstThread);
-            pool.execute(secondThread);
-
-        try {
-            countDownLatch.await();
-        } catch (InterruptedException e) {
-                System.out.println("Unexpected error.");
-                System.exit(-1);
+            LinkedList<File> fileList = new LinkedList<>();
+            for (File file : Objects.requireNonNull(copyFromFolder.listFiles())) {
+                if(!file.isDirectory()) {
+                    fileList.add(file);
+                }
             }
 
+            ExecutorService executorService = Executors.newFixedThreadPool(5);
+            File folder = new File(copyTo);
+            folder.mkdir();
 
-        RandomAccessFile resultFile = new RandomAccessFile("copy_" + fileName, "rw");
+            for (File file : fileList) {
+                executorService.execute(new CopyFile(file, copyTo));
+            }
 
-        System.out.println("First threads results writing...");
-        resultFile.write(firstThread.getPart1thread(), 0, firstThread.getPart1thread().length);
+                System.out.println("End.");
+                System.exit(0);
 
-        resultFile.seek(resultFile.length() - 0);
-
-        System.out.println("Second threads results writing..");
-        resultFile.write(secondThread.getPart2thread(), 0, secondThread.getPart2thread().length);
-
-        resultFile.close();
-
-            System.out.println("Return flow control to the main thread");
-
-            file.close();
-        System.exit(0);
-    }
-
-    public static void setCountDownLatch() {
-        Main.countDownLatch.countDown();
-    }
-
-    public static FirstThread getFirstThread() {
-        return firstThread;
-    }
-
-    public static SecondThread getSecondThread() {
-        return secondThread;
+        } else {
+            System.out.println("File does not exist!");
+        }
     }
 }
